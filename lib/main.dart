@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-const _viewHeight = 150.0;
-const _viewWidth = 100.0;
+const _viewHeight = 180.0;
+const _viewWidth = 120.0;
 
 void main() {
   runApp(const MyApp());
@@ -41,7 +41,10 @@ class _MyHomePageState extends State<MyHomePage> {
   final parentKey = GlobalKey();
   final childKey = GlobalKey();
 
-  Offset? getRelativeOffset() {
+  Offset? getRelativeOffset({
+    required double parentWidth,
+    required double parentHeight,
+  }) {
     final parentBox =
         parentKey.currentContext?.findRenderObject() as RenderBox?;
     final childBox = childKey.currentContext?.findRenderObject() as RenderBox?;
@@ -54,8 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final childOffsetRelativeToParent = globalChildOffset - globalParentOffset;
 
     return _getCalculatedRelativeOffset(
-      canvasWidth: parentBox.size.width,
-      canvasHeight: parentBox.size.height,
+      canvasWidth: parentWidth,
+      canvasHeight: parentHeight,
       relativeOffset: childOffsetRelativeToParent,
       viewWidth: _viewWidth,
       viewHeight: _viewHeight,
@@ -80,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
             AnimatedPositioned.fromRect(
               key: childKey,
               duration: Durations.short1,
-              rect: floatingOffset(),
+              rect: floatingOffset(constraints),
               child: GestureDetector(
                 onPanStart: (details) {
                   setState(() {
@@ -100,7 +103,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     movingLocalOffset = details.localPosition;
                   });
                 },
-                child: localVideo(),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: localVideo(),
+                ),
               ),
             ),
           ],
@@ -109,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Rect floatingOffset() {
+  Rect floatingOffset(BoxConstraints constraints) {
     Offset? offset;
     if (movingLocalOffset != null && floatingWidetOffest != null) {
       offset = floatingWidetOffest! -
@@ -124,7 +130,8 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    offset = getRelativeOffset();
+    offset = getRelativeOffset(
+        parentHeight: constraints.maxHeight, parentWidth: constraints.maxWidth);
     if (offset == null) {
       return const Rect.fromLTWH(0, 0, _viewWidth, _viewHeight);
     }
