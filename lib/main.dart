@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 
 const _viewHeight = 150.0;
@@ -35,8 +33,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Offset floatingWidetOffest = const Offset(10, 10);
-  Offset localDifference = const Offset(0, 0);
+  Offset? floatingWidetOffest;
+
+  /// FloatingOffset - LocalTapOffset of child widget.
+  // Offset? tapOffsetDifference;
 
   final parentKey = GlobalKey();
   final childKey = GlobalKey();
@@ -62,6 +62,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // Offset
+  Offset? movingLocalOffset;
+  Offset? tapLocalOffset;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,44 +73,68 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Stack(
-        key: parentKey,
-        children: [
-          AnimatedPositioned.fromRect(
-            key: childKey,
-            duration: Durations.short1,
-            rect: Rect.fromLTWH(
-              floatingWidetOffest.dx,
-              floatingWidetOffest.dy,
-              _viewWidth,
-              _viewHeight,
-            ),
-            child: GestureDetector(
-              onPanStart: (details) {
-                log(details.globalPosition.toString());
-                localDifference = floatingWidetOffest - details.localPosition;
-              },
-              onPanEnd: (_) {
-                localDifference = const Offset(0, 0);
-                final calculatedOffset = getRelativeOffset();
-                log(calculatedOffset.toString());
-                if (calculatedOffset != null) {
+      body: LayoutBuilder(builder: (context, constraints) {
+        return Stack(
+          key: parentKey,
+          children: [
+            AnimatedPositioned.fromRect(
+              key: childKey,
+              duration: Durations.short1,
+              rect: floatingOffset(),
+              child: GestureDetector(
+                onPanStart: (details) {
                   setState(() {
-                    floatingWidetOffest = calculatedOffset;
+                    tapLocalOffset = details.localPosition;
+                    movingLocalOffset = details.localPosition;
                   });
-                }
-              },
-              onPanUpdate: (details) {
-                // log(details.localPosition.toString());
-                setState(() {
-                  floatingWidetOffest = localDifference + details.localPosition;
-                });
-              },
-              child: localVideo(),
+                },
+                onPanEnd: (_) {
+                  setState(() {
+                    movingLocalOffset = null;
+                    tapLocalOffset = null;
+                  });
+                  // }
+                },
+                onPanUpdate: (details) {
+                  setState(() {
+                    movingLocalOffset = details.localPosition;
+                  });
+                },
+                child: localVideo(),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Rect floatingOffset() {
+    Offset? offset;
+    if (movingLocalOffset != null && floatingWidetOffest != null) {
+      offset = floatingWidetOffest! -
+          (tapLocalOffset ?? Offset.zero) +
+          (movingLocalOffset!);
+
+      return Rect.fromLTWH(
+        offset.dx,
+        offset.dy,
+        _viewWidth,
+        _viewHeight,
+      );
+    }
+
+    offset = getRelativeOffset();
+    if (offset == null) {
+      return const Rect.fromLTWH(0, 0, _viewWidth, _viewHeight);
+    }
+    // set final offset once moving done.
+    floatingWidetOffest = offset;
+    return Rect.fromLTWH(
+      offset.dx,
+      offset.dy,
+      _viewWidth,
+      _viewHeight,
     );
   }
 }
